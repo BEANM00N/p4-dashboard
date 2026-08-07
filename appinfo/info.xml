@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<info xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	  xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+	<id>perforcedashboard</id>
+	<name>Perforce Dashboard</name>
+	<summary>Live Perforce changelist and checkout dashboard for Nextcloud.</summary>
+	<description>A custom Nextcloud dashboard app and widget to monitor team file checkouts and changelists from a Perforce (Helix Core) server.</description>
+	<version>1.0.0</version>
+	<licence>AGPL-3.0-or-later</licence>
+	<author mail="joshmccamley@gmail.com" homepage="https://github.com/BEANM00N/p4-dashboard">Josh McCamley</author>
+	<namespace>PerforceDashboard</namespace>
+	<category>integration</category>
+	<category>monitoring</category>
+	<category>tools</category>
+	<bugs>https://github.com/BEANM00N/p4-dashboard/issues</bugs>
+	<dependencies>
+		<nextcloud min-version="31" max-version="34"/>
+	</dependencies>
+	<navigations>
+		<navigation>
+			<id>perforcedashboard</id>
+			<name>Perforce Dashboard</name>
+			<route>perforcedashboard.page.index</route>
+			<icon>app.svg</icon>
+			<type>link</type>
+		</navigation>
+	</navigations>
+</info>
