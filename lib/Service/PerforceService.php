@@ -26,12 +26,10 @@ class PerforceService {
             return ['error' => 'Perforce server address is not configured.'];
         }
 
-        // Auto-trust SSL certificate if using ssl: protocol
         if (str_starts_with($server, 'ssl:')) {
             exec(sprintf('export P4TRUST=/tmp/.p4trust; p4 -p %s trust -y 2>&1', escapeshellarg($server)));
         }
 
-        // Ensure trust and ticket stores in /tmp are always passed to every execution
         $cmd = sprintf(
             'export P4TRUST=/tmp/.p4trust; export P4TICKETS=/tmp/.p4tickets; p4 -p %s -u %s %s %s 2>&1',
             escapeshellarg($server),
@@ -51,55 +49,146 @@ class PerforceService {
     }
 
     /**
-     * Fetches changelists based on status ('pending' or 'submitted')
+     * Fetches changelists with smart persistent caching for submitted changes
      */
     public function getChangelists(string $status = 'pending'): array {
-        $statusArg = ($status === 'submitted') ? '-s submitted' : '-s pending';
-        $result = $this->execP4("changes {$statusArg} -m 20");
+        if ($status === 'submitted') {
+            return $this->getSubmittedChangelistsWithCache();
+        }
+
+        return $this->getPendingChangelists();
+    }
+
+    /**
+     * Fetches submitted changelists - only queries Perforce for UNCACHED changelist IDs
+     */
+    private function getSubmittedChangelistsWithCache(): array {
+        $result = $this->execP4("changes -s submitted -m 15");
 
         if (isset($result['error']) || empty($result['output'])) {
             return [];
         }
 
-        $changelists = [];
-        $maxFiles = 500;
+        // Load cached submitted changelists
+        $cacheRaw = $this->config->getAppValue('perforcedashboard', 'submitted_cache', '{}');
+        $cache = json_decode($cacheRaw, true) ?: [];
+
+        $clHeaders = [];
+        $uncachedIds = [];
 
         foreach ($result['output'] as $line) {
-            if (preg_match('/^Change (\d+) on (\S+) by ([^@\s]+)@\S+ (?:(\*pending\*) )?\'(.*)\'/', $line, $matches)) {
+            if (preg_match('/^Change (\d+) on (\S+) by ([^@\s]+)@\S+ \'(.*)\'/', $line, $matches)) {
                 $clId = (int)$matches[1];
-                $date = $matches[2];
-                $user = $matches[3];
-                $desc = $matches[5];
+                $clHeaders[$clId] = [
+                    'id' => $clId,
+                    'owner' => $matches[3],
+                    'description' => $matches[4],
+                    'status' => 'submitted',
+                    'timestamp' => $matches[2]
+                ];
 
-                $filesCmd = ($status === 'pending') ? 'opened -c ' . $clId : 'describe -s ' . $clId;
-                $filesResult = $this->execP4($filesCmd);
-                
-                $files = [];
-                $totalFiles = 0;
+                if (!isset($cache[$clId])) {
+                    $uncachedIds[] = $clId;
+                }
+            }
+        }
 
-                foreach ($filesResult['output'] as $fileLine) {
+        // ONLY query Perforce `describe -s` for BRAND NEW submitted changelists!
+        if (!empty($uncachedIds)) {
+            $uncachedStr = implode(' ', $uncachedIds);
+            $describeResult = $this->execP4("describe -s {$uncachedStr}");
+
+            $maxFiles = 500;
+            $currentClId = null;
+
+            foreach ($describeResult['output'] as $fileLine) {
+                if (preg_match('/^Change (\d+) by /', $fileLine, $m)) {
+                    $currentClId = (int)$m[1];
+                    if (isset($clHeaders[$currentClId])) {
+                        $clHeaders[$currentClId]['files'] = [];
+                        $clHeaders[$currentClId]['totalFiles'] = 0;
+                        $clHeaders[$currentClId]['truncated'] = false;
+                    }
+                    continue;
+                }
+
+                if ($currentClId && isset($clHeaders[$currentClId])) {
                     if (preg_match('/(?:\.\.\.\s+)?(\/\/.*?)#\d+/', $fileLine, $fileMatches)) {
-                        $totalFiles++;
-                        if (count($files) < $maxFiles) {
-                            $files[] = $fileMatches[1];
+                        $clHeaders[$currentClId]['totalFiles']++;
+                        if (count($clHeaders[$currentClId]['files']) < $maxFiles) {
+                            $clHeaders[$currentClId]['files'][] = $fileMatches[1];
+                        } else {
+                            $clHeaders[$currentClId]['truncated'] = true;
                         }
                     }
                 }
+            }
 
-                $changelists[] = [
+            // Save new entries into cache
+            foreach ($uncachedIds as $id) {
+                if (isset($clHeaders[$id])) {
+                    $cache[$id] = $clHeaders[$id];
+                }
+            }
+
+            $this->config->setAppValue('perforcedashboard', 'submitted_cache', json_encode($cache));
+        }
+
+        // Build list in order of latest changes
+        $finalList = [];
+        foreach ($clHeaders as $id => $header) {
+            if (isset($cache[$id])) {
+                $finalList[] = $cache[$id];
+            }
+        }
+
+        return $finalList;
+    }
+
+    /**
+     * Fetches active pending changelists
+     */
+    private function getPendingChangelists(): array {
+        $result = $this->execP4("changes -s pending -m 15");
+
+        if (isset($result['error']) || empty($result['output'])) {
+            return [];
+        }
+
+        $clMap = [];
+        foreach ($result['output'] as $line) {
+            if (preg_match('/^Change (\d+) on (\S+) by ([^@\s]+)@\S+ \*pending\* \'(.*)\'/', $line, $matches)) {
+                $clId = (int)$matches[1];
+                $clMap[$clId] = [
                     'id' => $clId,
-                    'owner' => $user,
-                    'description' => $desc,
-                    'status' => $status,
-                    'files' => array_values(array_unique($files)),
-                    'totalFiles' => $totalFiles,
-                    'truncated' => ($totalFiles > $maxFiles),
-                    'timestamp' => $date
+                    'owner' => $matches[3],
+                    'description' => $matches[4],
+                    'status' => 'pending',
+                    'files' => [],
+                    'totalFiles' => 0,
+                    'truncated' => false,
+                    'timestamp' => $matches[2]
                 ];
             }
         }
 
-        return $changelists;
+        if (!empty($clMap)) {
+            $openedResult = $this->execP4("opened -a -m 500");
+            foreach ($openedResult['output'] as $fileLine) {
+                if (preg_match('/^(\/\/.*?)(?:#\d+)?\s+-\s+\w+\s+.*?\bchange\s+(\d+)/', $fileLine, $m)) {
+                    $filePath = $m[1];
+                    $clId = (int)$m[2];
+                    if (isset($clMap[$clId])) {
+                        $clMap[$clId]['totalFiles']++;
+                        if (count($clMap[$clId]['files']) < 500) {
+                            $clMap[$clId]['files'][] = $filePath;
+                        }
+                    }
+                }
+            }
+        }
+
+        return array_values($clMap);
     }
 
     /**

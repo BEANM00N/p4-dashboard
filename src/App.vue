@@ -106,6 +106,40 @@ const filteredCheckouts = computed(() => {
 const toggleCard = (id: number | string) => {
     expandedCardId.value = expandedCardId.value === id ? null : id
 }
+
+// --- Unreal Engine Asset Category Classifier ---
+const getAssetCategory = (filePath: string): string => {
+    if (!filePath) return 'default'
+    const lower = filePath.toLowerCase()
+    const fileName = filePath.split('/').pop()?.toLowerCase() || ''
+
+    // 1. Explicit Extensions
+    if (lower.endsWith('.umap')) return 'map'
+    if (lower.endsWith('.cpp') || lower.endsWith('.h') || lower.endsWith('.cs')) return 'code'
+
+    // 2. Prefixes & Folder Patterns
+    if (fileName.startsWith('m_') || fileName.startsWith('mi_') || fileName.startsWith('m3d_') || lower.includes('/materials/')) {
+        return 'material' // Green
+    }
+    if (fileName.startsWith('t_') || fileName.startsWith('tx_') || lower.includes('/textures/')) {
+        return 'texture'  // Red
+    }
+    if (fileName.startsWith('l_') || fileName.startsWith('map_') || lower.includes('/maps/') || lower.includes('/levels/')) {
+        return 'map'      // Yellow
+    }
+    if (fileName.startsWith('bp_') || fileName.startsWith('wbp_') || lower.includes('/blueprints/') || lower.includes('/ui/')) {
+        return 'blueprint'// Blue
+    }
+    if (fileName.startsWith('sm_') || fileName.startsWith('sk_') || lower.includes('/meshes/') || lower.includes('/environment/')) {
+        return 'mesh'     // Purple
+    }
+    if (fileName.startsWith('a_') || fileName.startsWith('s_') || fileName.startsWith('sfx_') || lower.includes('/audio/') || lower.includes('/sounds/')) {
+        return 'audio'    // Orange
+    }
+
+    return 'default'
+}
+
 </script>
 
 <template>
@@ -170,8 +204,12 @@ const toggleCard = (id: number | string) => {
                             <h4>Currently Checked Out Assets:</h4>
                             <ul>
                                 <li v-for="file in item.files" :key="file.path">
-                                    <span :class="$style.actionTag">{{ file.action }}</span>
-                                    <code>{{ file.path }}</code>
+                                    <span :class="[$style.actionTag, $style[`action_${file.action.toLowerCase()}`]]">
+                                        {{ file.action }}
+                                    </span>
+                                    <code :class="[$style.filePath, $style[`asset_${getAssetCategory(file.path)}`]]">
+                                        {{ file.path }}
+                                    </code>
                                 </li>
                             </ul>
                         </div>
@@ -231,7 +269,9 @@ const toggleCard = (id: number | string) => {
                             <h4>Affected Files (showing {{ cl.files.length }}):</h4>
                             <ul>
                                 <li v-for="file in cl.files" :key="file">
-                                    <code>{{ file }}</code>
+                                    <code :class="[$style.filePath, $style[`asset_${getAssetCategory(file)}`]]">
+                                        {{ file }}
+                                    </code>
                                 </li>
                             </ul>
                         </div>
@@ -258,7 +298,42 @@ const toggleCard = (id: number | string) => {
 .cardHeader { display: flex; justify-content: space-between; align-items: center; }
 .cardHeader h3 { margin: 0; color: var(--color-primary); }
 .badge { background-color: var(--color-background-dark); color: var(--color-text-maxcontrast); padding: 4px 8px; border-radius: 12px; font-size: 0.8em; text-transform: uppercase; }
-.actionTag { background-color: var(--color-primary-element); color: var(--color-primary-element-text); padding: 2px 6px; border-radius: 4px; font-size: 0.75em; font-weight: bold; margin-right: 8px; text-transform: uppercase; }
+
+/* Action Badges */
+.actionTag {
+    display: inline-block;
+    min-width: 52px;
+    text-align: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 800;
+    margin-right: 10px;
+    text-transform: uppercase;
+    color: #ffffff;
+    letter-spacing: 0.5px;
+}
+
+.action_edit { background-color: #0082c9; }
+.action_add { background-color: #2e7d32; }
+.action_delete { background-color: #e53935; }
+
+/* File Path Underlines */
+.filePath {
+    border-bottom: 2.5px solid var(--color-border);
+    padding-bottom: 2px;
+    transition: border-color 0.2s ease;
+}
+
+/* Unreal Engine Asset Category Underline Colors */
+.asset_map { border-bottom-color: #ffd54f !important; }        /* Yellow for Maps / Levels */
+.asset_texture { border-bottom-color: #ef5350 !important; }    /* Red for Textures */
+.asset_material { border-bottom-color: #66bb6a !important; }   /* Green for Materials */
+.asset_blueprint { border-bottom-color: #42a5f5 !important; }  /* Blue for Blueprints / Widgets */
+.asset_mesh { border-bottom-color: #ab47bc !important; }       /* Purple for Meshes */
+.asset_audio { border-bottom-color: #ffa726 !important; }      /* Orange for Audio */
+.asset_code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }       /* Brown for C++ / Source */
+
 .fileList { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--color-border); }
 .fileList ul { list-style: none; padding-left: 0; margin: 5px 0 0 0; max-height: 300px; overflow-y: auto; }
 .fileList li { padding: 6px 0; font-size: 0.9em; display: flex; align-items: center; }
