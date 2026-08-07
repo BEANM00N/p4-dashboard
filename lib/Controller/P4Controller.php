@@ -25,23 +25,12 @@ class P4Controller extends Controller {
         $pending = $this->p4Service->getChangelists('pending');
         $submitted = $this->p4Service->getChangelists('submitted');
 
-        $allChangelists = array_merge($pending, $submitted);
+        return new DataResponse(array_merge($pending, $submitted));
+    }
 
-        // Fallback if no server data returned
-        if (empty($allChangelists)) {
-            $allChangelists = [
-                [
-                    'id' => 88888,
-                    'owner' => 'PHP_Server',
-                    'description' => 'No active changelists found. Verify server credentials in Settings.',
-                    'status' => 'pending',
-                    'files' => ['//depot/main/backend/Controller/P4Controller.php'],
-                    'timestamp' => 'Just now'
-                ]
-            ];
-        }
-
-        return new DataResponse($allChangelists);
+    public function getCheckouts(): DataResponse {
+        $checkouts = $this->p4Service->getCheckouts();
+        return new DataResponse($checkouts);
     }
 
     public function getSettings(): DataResponse {
@@ -65,10 +54,5 @@ class P4Controller extends Controller {
             'status' => 'success',
             'message' => 'Perforce connection settings saved successfully!'
         ]);
-    }
-
-    public function getCheckouts(): DataResponse {
-        $checkouts = $this->p4Service->getCheckouts();
-        return new DataResponse($checkouts);
     }
 }

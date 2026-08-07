@@ -38,16 +38,21 @@ const isSavingSettings = ref(false)
 const settingsStatusMessage = ref('')
 
 // --- API Fetch Functions ---
-const fetchDashboardData = async () => {
+const fetchChangelists = async () => {
     try {
-        const [clRes, checkoutsRes] = await Promise.all([
-            axios.get(generateUrl('/apps/perforcedashboard/api/changelists')),
-            axios.get(generateUrl('/apps/perforcedashboard/api/checkouts'))
-        ])
-        changelists.value = clRes.data
-        teamCheckouts.value = checkoutsRes.data
+        const response = await axios.get(generateUrl('/apps/perforcedashboard/api/changelists'))
+        changelists.value = response.data
     } catch (error) {
-        console.error('Failed to fetch Perforce data:', error)
+        console.error('Failed to fetch changelists:', error)
+    }
+}
+
+const fetchCheckouts = async () => {
+    try {
+        const response = await axios.get(generateUrl('/apps/perforcedashboard/api/checkouts'))
+        teamCheckouts.value = response.data
+    } catch (error) {
+        console.error('Failed to fetch checkouts:', error)
     }
 }
 
@@ -60,26 +65,16 @@ const fetchSettings = async () => {
     }
 }
 
-const saveSettings = async () => {
-    isSavingSettings.value = true
-    settingsStatusMessage.value = ''
-    try {
-        const response = await axios.post(generateUrl('/apps/perforcedashboard/api/settings'), settings.value)
-        settingsStatusMessage.value = response.data.message
-        fetchDashboardData()
-    } catch (error) {
-        console.error('Failed to save settings:', error)
-        settingsStatusMessage.value = 'Failed to save settings. Check browser console.'
-    } finally {
-        isSavingSettings.value = false
-    }
+const fetchAllData = () => {
+    fetchChangelists()
+    fetchCheckouts()
 }
 
 // --- Lifecycle & Polling ---
 onMounted(() => {
-    fetchDashboardData()
+    fetchAllData()
     fetchSettings()
-    pollTimer = window.setInterval(fetchDashboardData, 3000)
+    pollTimer = window.setInterval(fetchAllData, 3000)
 })
 
 onUnmounted(() => {

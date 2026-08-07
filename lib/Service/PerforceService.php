@@ -53,23 +53,73 @@ class PerforceService {
     /**
      * Fetches changelists based on status ('pending' or 'submitted')
      */
-public function getCheckouts(): array {
-        // -a queries opened files across ALL workspaces and ALL users
-        $result = $this->execP4('opened -a');
+    public function getChangelists(string $status = 'pending'): array {
+        $statusArg = ($status === 'submitted') ? '-s submitted' : '-s pending';
+        $result = $this->execP4("changes {$statusArg} -m 20");
+
+        if (isset($result['error']) || empty($result['output'])) {
+            return [];
+        }
+
+        $changelists = [];
+        $maxFiles = 500;
+
+        foreach ($result['output'] as $line) {
+            if (preg_match('/^Change (\d+) on (\S+) by ([^@\s]+)@\S+ (?:(\*pending\*) )?\'(.*)\'/', $line, $matches)) {
+                $clId = (int)$matches[1];
+                $date = $matches[2];
+                $user = $matches[3];
+                $desc = $matches[5];
+
+                $filesCmd = ($status === 'pending') ? 'opened -c ' . $clId : 'describe -s ' . $clId;
+                $filesResult = $this->execP4($filesCmd);
+                
+                $files = [];
+                $totalFiles = 0;
+
+                foreach ($filesResult['output'] as $fileLine) {
+                    if (preg_match('/(?:\.\.\.\s+)?(\/\/.*?)#\d+/', $fileLine, $fileMatches)) {
+                        $totalFiles++;
+                        if (count($files) < $maxFiles) {
+                            $files[] = $fileMatches[1];
+                        }
+                    }
+                }
+
+                $changelists[] = [
+                    'id' => $clId,
+                    'owner' => $user,
+                    'description' => $desc,
+                    'status' => $status,
+                    'files' => array_values(array_unique($files)),
+                    'totalFiles' => $totalFiles,
+                    'truncated' => ($totalFiles > $maxFiles),
+                    'timestamp' => $date
+                ];
+            }
+        }
+
+        return $changelists;
+    }
+
+    /**
+     * Fetches all currently checked-out files across all team workspaces
+     */
+    public function getCheckouts(): array {
+        $result = $this->execP4('opened -a -m 500');
 
         if (isset($result['error']) || empty($result['output'])) {
             return [];
         }
 
         $userMap = [];
-        $maxFilesPerUser = 500;
+        $maxFilesPerUser = 100;
 
         foreach ($result['output'] as $line) {
-            // Matches format: //depot/path/file.uasset#1 - edit default change (binary) by User@Workspace
-            if (preg_match('/^(\/\/.*?)(?:#\d+)?\s+-\s+(\w+)\s+(?:default\s+change|change\s+\d+).*?\s+by\s+([^@\s]+)@(\S+)/', $line, $matches)) {
-                $filePath = $matches[1];
-                $action = $matches[2]; // edit, add, or delete
-                $userName = $matches[3];
+            if (preg_match('/^(\/\/.*?)(?:#\d+)?\s+-\s+(\w+)\s+.*?\bby\s+([^@\s]+)@(\S+)/', $line, $matches)) {
+                $filePath  = $matches[1];
+                $action    = $matches[2];
+                $userName  = $matches[3];
                 $workspace = $matches[4];
 
                 if (!isset($userMap[$userName])) {
@@ -91,3 +141,4 @@ public function getCheckouts(): array {
 
         return array_values($userMap);
     }
+}
