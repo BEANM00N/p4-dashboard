@@ -10,7 +10,9 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
+use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\TemplateResponse;
+use OCP\Util;
 
 /**
  * @psalm-suppress UnusedClass
@@ -21,9 +23,26 @@ class PageController extends Controller {
 	#[OpenAPI(OpenAPI::SCOPE_IGNORE)]
 	#[FrontpageRoute(verb: 'GET', url: '/')]
 	public function index(): TemplateResponse {
-		return new TemplateResponse(
+		// Enqueue the Vue app scripts and styles
+		Util::addScript(Application::APP_ID, 'perforcedashboard-main');
+		Util::addStyle(Application::APP_ID, 'perforcedashboard-main');
+
+		$response = new TemplateResponse(
 			Application::APP_ID,
 			'index',
 		);
+
+		// Define allowed origins so Nextcloud's CSP doesn't block local Vite assets
+		$policy = new ContentSecurityPolicy();
+		$policy->addAllowedScriptDomain('\'self\'');
+		$policy->addAllowedScriptDomain('\'unsafe-inline\'');
+		$policy->addAllowedScriptDomain('\'unsafe-eval\'');
+		$policy->addAllowedStyleDomain('\'self\'');
+		$policy->addAllowedStyleDomain('\'unsafe-inline\'');
+		$policy->addAllowedConnectDomain('\'self\'');
+
+		$response->setContentSecurityPolicy($policy);
+
+		return $response;
 	}
 }

@@ -28,12 +28,12 @@ class PerforceService {
 
         // Auto-trust SSL certificate if using ssl: protocol
         if (str_starts_with($server, 'ssl:')) {
-            exec(sprintf('p4 -p %s trust -y 2>&1', escapeshellarg($server)));
+            exec(sprintf('export P4TRUST=/tmp/.p4trust; p4 -p %s trust -y 2>&1', escapeshellarg($server)));
         }
 
-        // Build command
+        // Ensure trust and ticket stores in /tmp are always passed to every execution
         $cmd = sprintf(
-            'p4 -p %s -u %s %s %s 2>&1',
+            'export P4TRUST=/tmp/.p4trust; export P4TICKETS=/tmp/.p4tickets; p4 -p %s -u %s %s %s 2>&1',
             escapeshellarg($server),
             escapeshellarg($user),
             !empty($password) ? '-P ' . escapeshellarg($password) : '',
@@ -53,48 +53,41 @@ class PerforceService {
     /**
      * Fetches changelists based on status ('pending' or 'submitted')
      */
-    public function getChangelists(string $status = 'pending'): array {
-        $statusArg = ($status === 'submitted') ? '-s submitted' : '-s pending';
-        $result = $this->execP4("changes {$statusArg} -m 20");
+public function getCheckouts(): array {
+        // -a queries opened files across ALL workspaces and ALL users
+        $result = $this->execP4('opened -a');
 
         if (isset($result['error']) || empty($result['output'])) {
             return [];
         }
 
-        $changelists = [];
+        $userMap = [];
+        $maxFilesPerUser = 500;
+
         foreach ($result['output'] as $line) {
-            // Match pending or submitted change line
-            // e.g. "Change 12345 on 2026/08/07 by user@workspace *pending* 'description...'"
-            // e.g. "Change 12340 on 2026/08/07 by user@workspace 'description...'"
-            if (preg_match('/^Change (\d+) on (\S+) by ([^@\s]+)@\S+ (?:(\*pending\*) )?\'(.*)\'/', $line, $matches)) {
-                $clId = (int)$matches[1];
-                $date = $matches[2];
-                $user = $matches[3];
-                $desc = $matches[5];
+            // Matches format: //depot/path/file.uasset#1 - edit default change (binary) by User@Workspace
+            if (preg_match('/^(\/\/.*?)(?:#\d+)?\s+-\s+(\w+)\s+(?:default\s+change|change\s+\d+).*?\s+by\s+([^@\s]+)@(\S+)/', $line, $matches)) {
+                $filePath = $matches[1];
+                $action = $matches[2]; // edit, add, or delete
+                $userName = $matches[3];
+                $workspace = $matches[4];
 
-                // Fetch files for this changelist
-                $filesCmd = ($status === 'pending') ? 'opened -c ' . $clId : 'describe -s ' . $clId;
-                $filesResult = $this->execP4($filesCmd);
-                $files = [];
-
-                foreach ($filesResult['output'] as $fileLine) {
-                    if (preg_match('/^\.\.\.\s+(\/\/depot\/[^\s#]+)/', $fileLine, $fileMatches) || 
-                        preg_match('/^(\/\/depot\/[^\s#]+)/', $fileLine, $fileMatches)) {
-                        $files[] = $fileMatches[1];
-                    }
+                if (!isset($userMap[$userName])) {
+                    $userMap[$userName] = [
+                        'user' => $userName,
+                        'workspace' => $workspace,
+                        'files' => []
+                    ];
                 }
 
-                $changelists[] = [
-                    'id' => $clId,
-                    'owner' => $user,
-                    'description' => $desc,
-                    'status' => $status,
-                    'files' => array_unique($files),
-                    'timestamp' => $date
-                ];
+                if (count($userMap[$userName]['files']) < $maxFilesPerUser) {
+                    $userMap[$userName]['files'][] = [
+                        'path' => $filePath,
+                        'action' => $action
+                    ];
+                }
             }
         }
 
-        return $changelists;
+        return array_values($userMap);
     }
-}

@@ -66,4 +66,9 @@ class P4Controller extends Controller {
             'message' => 'Perforce connection settings saved successfully!'
         ]);
     }
+
+    public function getCheckouts(): DataResponse {
+        $checkouts = $this->p4Service->getCheckouts();
+        return new DataResponse($checkouts);
+    }
 }
