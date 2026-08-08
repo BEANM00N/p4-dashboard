@@ -21,6 +21,10 @@ class P4Controller extends Controller {
         $this->p4Service = $p4Service;
     }
 
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     */
     public function getChangelists(): DataResponse {
         $pending = $this->p4Service->getChangelists('pending');
         $submitted = $this->p4Service->getChangelists('submitted');
@@ -28,11 +32,19 @@ class P4Controller extends Controller {
         return new DataResponse(array_merge($pending, $submitted));
     }
 
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     */
     public function getCheckouts(): DataResponse {
         $checkouts = $this->p4Service->getCheckouts();
         return new DataResponse($checkouts);
     }
 
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     */
     public function getSettings(): DataResponse {
         return new DataResponse([
             'server' => $this->config->getAppValue('perforcedashboard', 'p4_server', 'ssl:perforce.madmoonserver.com:1666'),
@@ -41,6 +53,10 @@ class P4Controller extends Controller {
         ]);
     }
 
+    /**
+     * @NoAdminRequired
+     * @NoCSRFRequired
+     */
     public function saveSettings(): DataResponse {
         $server = $this->request->getParam('server', '');
         $user = $this->request->getParam('user', '');
