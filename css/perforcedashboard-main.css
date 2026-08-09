@@ -1,2 +1,200 @@
-/* extracted by css-entry-points-plugin */
-@import './main-DFUIy_Tn.chunk.css';
+/* Perforce Dashboard Direct Styles */
+
+.p4-content {
+    display: flex;
+    justify-content: flex-start;
+    padding: 30px;
+    width: 100%;
+}
+
+.p4-dashboard {
+    width: 100%;
+    max-width: 900px;
+}
+
+.p4-header h2 {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.p4-search-input,
+.p4-input-field {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    background-color: rgba(0, 0, 0, 0.35) !important;
+    color: #ffffff !important;
+    margin-bottom: 18px;
+    box-sizing: border-box;
+    font-size: 0.95em;
+}
+
+.p4-card {
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    padding: 20px !important;
+    margin-top: 15px !important;
+    border-radius: 8px !important;
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.p4-card:hover {
+    border-color: #0082c9 !important;
+}
+
+.p4-card-expanded {
+    border-color: #0082c9 !important;
+    box-shadow: 0 0 12px rgba(0, 130, 201, 0.25) !important;
+}
+
+.p4-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.p4-card-header h3 {
+    margin: 0;
+    color: #0082c9 !important;
+    font-size: 1.35em;
+    font-weight: 700;
+}
+
+.p4-workspace-info {
+    margin: 6px 0 0 0;
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.p4-cl-meta {
+    margin: 4px 0 0 0;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.p4-description {
+    margin-top: 6px;
+    font-size: 0.95em;
+}
+
+.p4-badge {
+    background-color: rgba(255, 255, 255, 0.12) !important;
+    color: rgba(255, 255, 255, 0.85) !important;
+    padding: 4px 10px !important;
+    border-radius: 12px !important;
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+.p4-action-tag {
+    display: inline-block;
+    min-width: 54px;
+    text-align: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 0.75em;
+    font-weight: 800;
+    margin-right: 12px;
+    text-transform: uppercase;
+    color: #ffffff !important;
+    letter-spacing: 0.5px;
+}
+
+.p4-action-edit { background-color: #0082c9 !important; }
+.p4-action-add { background-color: #2e7d32 !important; }
+.p4-action-delete { background-color: #e53935 !important; }
+
+.p4-file-path {
+    font-family: monospace;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.p4-file-list {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dotted rgba(255, 255, 255, 0.2);
+}
+
+.p4-file-list h4 {
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    font-weight: 700;
+}
+
+.p4-file-list ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.p4-file-list li {
+    padding: 6px 0;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+}
+
+.p4-nav-list {
+    padding: 10px;
+    list-style: none;
+}
+
+.p4-nav-list li a {
+    display: block;
+    padding: 10px 14px;
+    color: var(--color-text-maxcontrast);
+    text-decoration: none;
+    border-radius: var(--border-radius);
+}
+
+.p4-nav-list li:hover a {
+    background-color: var(--color-background-hover);
+}
+
+.p4-active-nav a {
+    background-color: var(--color-background-dark);
+    font-weight: bold;
+}
+
+.p4-settings-form {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 25px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.p4-field-group {
+    margin-bottom: 15px;
+}
+
+.p4-field-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.p4-commit-btn {
+    background-color: #0082c9;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.p4-empty-state {
+    padding: 40px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.5);
+}
