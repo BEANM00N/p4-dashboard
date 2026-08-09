@@ -187,7 +187,7 @@ const toggleCard = (id: number | string) => {
                             <h4>Currently Checked Out Assets:</h4>
                             <ul>
                                 <li v-for="file in item.files" :key="file.path">
-                                    <span :class="['p4-action-tag', `p4-action-${file.action.toLowerCase()}`]">
+                                    <span :class="['p4-action-tag', 'p4-action-' + file.action.toLowerCase()]">
                                         {{ file.action }}
                                     </span>
                                     <code class="p4-file-path">{{ file.path }}</code>

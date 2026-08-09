@@ -10,7 +10,6 @@ use OCP\AppFramework\Http\Attribute\FrontpageRoute;
 use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\Attribute\OpenAPI;
-use OCP\AppFramework\Http\ContentSecurityPolicy;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\Util;
 
@@ -27,22 +26,9 @@ class PageController extends Controller {
 		Util::addScript(Application::APP_ID, 'perforcedashboard-main');
 		Util::addStyle(Application::APP_ID, 'perforcedashboard-main');
 
-		$response = new TemplateResponse(
+		return new TemplateResponse(
 			Application::APP_ID,
 			'index',
 		);
-
-		// Define allowed origins so Nextcloud's CSP doesn't block local assets
-		$policy = new ContentSecurityPolicy();
-		$policy->addAllowedScriptDomain('\'self\'');
-		$policy->addAllowedScriptDomain('\'unsafe-inline\'');
-		$policy->addAllowedScriptDomain('\'unsafe-eval\'');
-		$policy->addAllowedStyleDomain('\'self\'');
-		$policy->addAllowedStyleDomain('\'unsafe-inline\'');
-		$policy->addAllowedConnectDomain('\'self\'');
-
-		$response->setContentSecurityPolicy($policy);
-
-		return $response;
 	}
 }
