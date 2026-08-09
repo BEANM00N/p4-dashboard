@@ -128,23 +128,23 @@ const toggleCard = (id: number | string) => {
         <!-- Sidebar Navigation -->
         <NcAppNavigation>
             <template #list>
-                <ul class="nav-list">
-                    <li :class="{ 'active-nav': activeTab === 'checkouts' }">
+                <ul :class="$style.navList">
+                    <li :class="{ [$style.activeNav]: activeTab === 'checkouts' }">
                         <a href="#" @click.prevent="activeTab = 'checkouts'">
                             👥 Team Checkouts ({{ teamCheckouts.length }})
                         </a>
                     </li>
-                    <li :class="{ 'active-nav': activeTab === 'pending' }">
+                    <li :class="{ [$style.activeNav]: activeTab === 'pending' }">
                         <a href="#" @click.prevent="activeTab = 'pending'">
                             Pending Changelists ({{ changelists.filter(c => c.status === 'pending').length }})
                         </a>
                     </li>
-                    <li :class="{ 'active-nav': activeTab === 'submitted' }">
+                    <li :class="{ [$style.activeNav]: activeTab === 'submitted' }">
                         <a href="#" @click.prevent="activeTab = 'submitted'">
                             Submitted History ({{ changelists.filter(c => c.status === 'submitted').length }})
                         </a>
                     </li>
-                    <li :class="{ 'active-nav': activeTab === 'settings' }">
+                    <li :class="{ [$style.activeNav]: activeTab === 'settings' }">
                         <a href="#" @click.prevent="activeTab = 'settings'">
                             ⚙️ Server Settings
                         </a>
@@ -154,10 +154,10 @@ const toggleCard = (id: number | string) => {
         </NcAppNavigation>
 
         <!-- Main Dashboard View -->
-        <NcAppContent class="content">
+        <NcAppContent :class="$style.content">
             <!-- Active Team Checkouts View -->
-            <div v-if="activeTab === 'checkouts'" class="dashboard">
-                <div class="header">
+            <div v-if="activeTab === 'checkouts'" :class="$style.dashboard">
+                <div :class="$style.header">
                     <h2>Active Team File Checkouts</h2>
                 </div>
 
@@ -165,101 +165,107 @@ const toggleCard = (id: number | string) => {
                     v-model="searchQuery"
                     type="text"
                     placeholder="Search by team member, workspace, or asset path..."
-                    class="search-input"
+                    :class="$style.searchInput"
                 />
 
                 <div v-if="filteredCheckouts.length > 0">
                     <div
                         v-for="item in filteredCheckouts"
                         :key="item.user"
-                        :class="['card', { 'expanded-card': expandedCardId === item.user }]"
+                        :class="[$style.card, { [$style.expandedCard]: expandedCardId === item.user }]"
                         @click="toggleCard(item.user)"
                     >
-                        <div class="card-header">
+                        <div :class="$style.cardHeader">
                             <h3>👤 {{ item.user }}</h3>
-                            <span class="badge">{{ item.files.length }} FILES OPEN</span>
+                            <span :class="$style.badge">{{ item.files.length }} FILES OPEN</span>
                         </div>
-                        <p class="workspace-info"><strong>Workspace:</strong> <span>{{ item.workspace }}</span></p>
+                        <p :class="$style.workspaceInfo">
+                            <strong>Workspace:</strong> {{ item.workspace }}
+                        </p>
 
-                        <div v-if="expandedCardId === item.user" class="file-list">
+                        <div v-if="expandedCardId === item.user" :class="$style.fileList">
                             <h4>Currently Checked Out Assets:</h4>
                             <ul>
                                 <li v-for="file in item.files" :key="file.path">
-                                    <span :class="['action-tag', `action_${file.action.toLowerCase()}`]">
+                                    <span :class="[$style.actionTag, $style[`action_${file.action.toLowerCase()}`]]">
                                         {{ file.action }}
                                     </span>
-                                    <code class="file-path">{{ file.path }}</code>
+                                    <code :class="$style.filePath">{{ file.path }}</code>
                                 </li>
                             </ul>
                         </div>
                     </div>
                 </div>
 
-                <div v-else class="empty-state">
+                <div v-else :class="$style.emptyState">
                     <p>No active file checkouts found on the server.</p>
                 </div>
             </div>
 
             <!-- Settings Panel View -->
-            <div v-else-if="activeTab === 'settings'" class="dashboard">
+            <div v-else-if="activeTab === 'settings'" :class="$style.dashboard">
                 <h2>Perforce Server Settings</h2>
-                <div class="settings-form">
-                    <div class="field-group">
+                <div :class="$style.settingsForm">
+                    <div :class="$style.fieldGroup">
                         <label>Server Address (P4PORT):</label>
-                        <input v-model="settings.server" type="text" class="input-field" />
+                        <input v-model="settings.server" type="text" :class="$style.inputField" />
                     </div>
-                    <div class="field-group">
+                    <div :class="$style.fieldGroup">
                         <label>P4 Username:</label>
-                        <input v-model="settings.user" type="text" class="input-field" />
+                        <input v-model="settings.user" type="text" :class="$style.inputField" />
                     </div>
-                    <div class="field-group">
+                    <div :class="$style.fieldGroup">
                         <label>P4 Password or Ticket:</label>
-                        <input v-model="settings.password" type="password" class="input-field" />
+                        <input v-model="settings.password" type="password" :class="$style.inputField" />
                     </div>
-                    <button class="commit-btn" :disabled="isSavingSettings" @click="saveSettings">
+                    <button :class="$style.commitBtn" :disabled="isSavingSettings" @click="saveSettings">
                         {{ isSavingSettings ? 'Saving...' : 'Save Settings' }}
                     </button>
-                    <p v-if="settingsStatusMessage" class="status-msg">{{ settingsStatusMessage }}</p>
+                    <p v-if="settingsStatusMessage" :class="$style.statusMsg">{{ settingsStatusMessage }}</p>
                 </div>
             </div>
 
             <!-- Changelist List View -->
-            <div v-else class="dashboard">
-                <div class="header">
+            <div v-else :class="$style.dashboard">
+                <div :class="$style.header">
                     <h2>Perforce Team Activity</h2>
                 </div>
-                <input v-model="searchQuery" type="text" placeholder="Search by owner, ID, or description..." class="search-input" />
+                <input v-model="searchQuery" type="text" placeholder="Search by owner, ID, or description..." :class="$style.searchInput" />
 
                 <div v-if="filteredChangelists.length > 0">
                     <div
                         v-for="cl in filteredChangelists"
                         :key="cl.id"
-                        :class="['card', { 'expanded-card': expandedCardId === cl.id }]"
+                        :class="[$style.card, { [$style.expandedCard]: expandedCardId === cl.id }]"
                         @click="toggleCard(cl.id)"
                     >
-                        <div class="card-header">
+                        <div :class="$style.cardHeader">
                             <h3>CL #{{ cl.id }}</h3>
-                            <span class="badge">{{ cl.status }}</span>
+                            <span :class="$style.badge">{{ cl.status }}</span>
                         </div>
-                        <p class="cl-meta"><strong>Owner:</strong> {{ cl.owner }} • <em>{{ cl.timestamp }}</em></p>
-                        <p class="description">{{ cl.description }}</p>
+                        <p :class="$style.clMeta"><strong>Owner:</strong> {{ cl.owner }} • <em>{{ cl.timestamp }}</em></p>
+                        <p :class="$style.description">{{ cl.description }}</p>
 
-                        <div v-if="expandedCardId === cl.id" class="file-list">
+                        <div v-if="expandedCardId === cl.id" :class="$style.fileList">
                             <h4>Affected Files (showing {{ cl.files.length }}):</h4>
                             <ul>
                                 <li v-for="file in cl.files" :key="file">
-                                    <code class="file-path">{{ file }}</code>
+                                    <code :class="$style.filePath">{{ file }}</code>
                                 </li>
                             </ul>
                         </div>
                     </div>
+                </div>
+
+                <div v-else :class="$style.emptyState">
+                    <p>No changelists match your filter.</p>
                 </div>
             </div>
         </NcAppContent>
     </NcContent>
 </template>
 
-<style scoped>
+<style module>
 .content {
     display: flex;
     justify-content: flex-start;
@@ -272,30 +278,70 @@ const toggleCard = (id: number | string) => {
     max-width: 900px;
 }
 
-.header h2 {
-    font-size: 1.8em;
-    font-weight: 700;
-    margin-bottom: 15px;
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
 }
 
-.search-input,
-.input-field {
+.commitBtn {
+    background-color: #0082c9;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.commitBtn:hover {
+    background-color: #006da8;
+}
+
+.searchInput,
+.inputField {
     width: 100%;
     padding: 10px 14px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(0, 0, 0, 0.25);
     color: var(--color-main-text);
-    margin-bottom: 20px;
+    margin-bottom: 18px;
     box-sizing: border-box;
     font-size: 0.95em;
+}
+
+.settingsForm {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 25px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.fieldGroup {
+    margin-bottom: 15px;
+}
+
+.fieldGroup label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.statusMsg {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #2e7d32;
 }
 
 .card {
     border: 1px solid rgba(255, 255, 255, 0.12);
     background-color: rgba(255, 255, 255, 0.03);
     padding: 20px;
-    margin-bottom: 16px;
+    margin-top: 15px;
     border-radius: 8px;
     cursor: pointer;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -305,31 +351,31 @@ const toggleCard = (id: number | string) => {
     border-color: #0082c9;
 }
 
-.expanded-card {
+.expandedCard {
     border-color: #0082c9 !important;
-    box-shadow: 0 0 10px rgba(0, 130, 201, 0.2);
+    box-shadow: 0 0 12px rgba(0, 130, 201, 0.25);
 }
 
-.card-header {
+.cardHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-.card-header h3 {
+.cardHeader h3 {
     margin: 0;
     color: #0082c9;
-    font-size: 1.3em;
+    font-size: 1.35em;
     font-weight: 700;
 }
 
-.workspace-info {
+.workspaceInfo {
     margin: 6px 0 0 0;
     font-size: 0.95em;
     color: rgba(255, 255, 255, 0.85);
 }
 
-.cl-meta {
+.clMeta {
     margin: 4px 0 0 0;
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.7);
@@ -342,15 +388,16 @@ const toggleCard = (id: number | string) => {
 
 .badge {
     background-color: rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.75);
     padding: 4px 10px;
     border-radius: 12px;
     font-size: 0.75em;
     font-weight: 700;
     letter-spacing: 0.5px;
+    text-transform: uppercase;
 }
 
-.action-tag {
+.actionTag {
     display: inline-block;
     min-width: 54px;
     text-align: center;
@@ -368,76 +415,45 @@ const toggleCard = (id: number | string) => {
 .action_add { background-color: #2e7d32; }
 .action_delete { background-color: #e53935; }
 
-.file-path {
+.filePath {
     font-family: monospace;
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.9);
 }
 
-.file-list {
+.fileList {
     margin-top: 18px;
     padding-top: 16px;
-    border-top: 1px dashed rgba(255, 255, 255, 0.15);
+    border-top: 1px dotted rgba(255, 255, 255, 0.15);
 }
 
-.file-list h4 {
+.fileList h4 {
     margin: 0 0 12px 0;
     font-size: 1.1em;
     font-weight: 700;
 }
 
-.file-list ul {
+.fileList ul {
     list-style: none;
     padding-left: 0;
     margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
 }
 
-.file-list li {
+.fileList li {
     padding: 5px 0;
+    font-size: 0.9em;
     display: flex;
     align-items: center;
 }
 
-.settings-form {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 25px;
-    border-radius: 8px;
-    margin-top: 15px;
-}
-
-.field-group {
-    margin-bottom: 15px;
-}
-
-.field-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 6px;
-}
-
-.commit-btn {
-    background-color: #0082c9;
-    color: #ffffff;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.status-msg {
-    margin-top: 15px;
-    font-weight: bold;
-    color: #2e7d32;
-}
-
-.nav-list {
+.navList {
     padding: 10px;
     list-style: none;
 }
 
-.nav-list li a {
+.navList li a {
     display: block;
     padding: 10px 14px;
     color: var(--color-text-maxcontrast);
@@ -445,16 +461,16 @@ const toggleCard = (id: number | string) => {
     border-radius: var(--border-radius);
 }
 
-.nav-list li:hover a {
+.navList li:hover a {
     background-color: var(--color-background-hover);
 }
 
-.active-nav a {
+.activeNav a {
     background-color: var(--color-background-dark);
     font-weight: bold;
 }
 
-.empty-state {
+.emptyState {
     padding: 40px;
     text-align: center;
     color: rgba(255, 255, 255, 0.5);
