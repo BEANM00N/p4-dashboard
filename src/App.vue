@@ -89,7 +89,7 @@ const fetchAllData = () => {
 onMounted(() => {
     fetchAllData()
     fetchSettings()
-    pollTimer = window.setInterval(fetchAllData, 3000)
+    pollTimer = window.setInterval(fetchAllData, 2000)
 })
 
 onUnmounted(() => {
