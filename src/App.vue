@@ -122,36 +122,8 @@ const toggleCard = (id: number | string) => {
     expandedCardId.value = expandedCardId.value === id ? null : id
 }
 
-// --- Unreal Engine Asset Category Classifier ---
-const getAssetCategory = (filePath: string): string => {
-    if (!filePath) return 'default'
-    const lower = filePath.toLowerCase()
-    const fileName = filePath.split('/').pop()?.toLowerCase() || ''
 
-    if (lower.endsWith('.umap')) return 'map'
-    if (lower.endsWith('.cpp') || lower.endsWith('.h') || lower.endsWith('.cs')) return 'code'
 
-    if (fileName.startsWith('m_') || fileName.startsWith('mi_') || fileName.startsWith('m3d_') || lower.includes('/materials/')) {
-        return 'material'
-    }
-    if (fileName.startsWith('t_') || fileName.startsWith('tx_') || lower.includes('/textures/')) {
-        return 'texture'
-    }
-    if (fileName.startsWith('l_') || fileName.startsWith('map_') || lower.includes('/maps/') || lower.includes('/levels/')) {
-        return 'map'
-    }
-    if (fileName.startsWith('bp_') || fileName.startsWith('wbp_') || lower.includes('/blueprints/') || lower.includes('/ui/')) {
-        return 'blueprint'
-    }
-    if (fileName.startsWith('sm_') || fileName.startsWith('sk_') || lower.includes('/meshes/') || lower.includes('/environment/')) {
-        return 'mesh'
-    }
-    if (fileName.startsWith('a_') || fileName.startsWith('s_') || fileName.startsWith('sfx_') || lower.includes('/audio/') || lower.includes('/sounds/')) {
-        return 'audio'
-    }
-
-    return 'default'
-}
 </script>
 
 <template>
@@ -217,11 +189,9 @@ const getAssetCategory = (filePath: string): string => {
                             <ul>
                                 <li v-for="file in item.files" :key="file.path">
                                     <span :class="[$style.actionTag, $style[`action_${file.action.toLowerCase()}`]]">
-                                        {{ file.action }}
-                                    </span>
-                                    <code :class="[$style.filePath, $style[`asset_${getAssetCategory(file.path)}`]]">
-                                        {{ file.path }}
-                                    </code>
+    {{ file.action }}
+</span>
+                                    <code>{{ file.path }}</code>
                                 </li>
                             </ul>
                         </div>
@@ -281,9 +251,7 @@ const getAssetCategory = (filePath: string): string => {
                             <h4>Affected Files (showing {{ cl.files.length }}):</h4>
                             <ul>
                                 <li v-for="file in cl.files" :key="file">
-                                    <code :class="[$style.filePath, $style[`asset_${getAssetCategory(file)}`]]">
-                                        {{ file }}
-                                    </code>
+                                    <code>{{ file }}</code>
                                 </li>
                             </ul>
                         </div>
@@ -310,7 +278,6 @@ const getAssetCategory = (filePath: string): string => {
 .cardHeader { display: flex; justify-content: space-between; align-items: center; }
 .cardHeader h3 { margin: 0; color: var(--color-primary); }
 .badge { background-color: var(--color-background-dark); color: var(--color-text-maxcontrast); padding: 4px 8px; border-radius: 12px; font-size: 0.8em; text-transform: uppercase; }
-
 .actionTag {
     display: inline-block;
     min-width: 52px;
@@ -325,25 +292,18 @@ const getAssetCategory = (filePath: string): string => {
     letter-spacing: 0.5px;
 }
 
-.action_edit { background-color: #0082c9; }
-.action_add { background-color: #2e7d32; }
-.action_delete { background-color: #e53935; }
-
-.filePath {
-    border-bottom: 2.5px solid var(--color-border);
-    padding-bottom: 2px;
-    transition: border-color 0.2s ease;
+/* Color-coded Perforce Actions */
+.action_edit {
+    background-color: #0082c9; /* Nextcloud / P4 Blue */
 }
 
-.asset_map { border-bottom-color: #ffd54f !important; }
-.asset_texture { border-bottom-color: #ef5350 !important; }
-.asset_material { border-bottom-color: #66bb6a !important; }
-.asset_blueprint { border-bottom-color: #42a5f5 !important; }
-.asset_mesh { border-bottom-color: #ab47bc !important; }
-.asset_audio { border-bottom-color: #ffa726 !important; }
-.asset_code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }
+.action_add {
+    background-color: #2e7d32; /* Green */
+}
 
-.fileList { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--color-border); }
+.action_delete {
+    background-color: #e53935; /* Red */
+}.fileList { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--color-border); }
 .fileList ul { list-style: none; padding-left: 0; margin: 5px 0 0 0; max-height: 300px; overflow-y: auto; }
 .fileList li { padding: 6px 0; font-size: 0.9em; display: flex; align-items: center; }
 .navList { padding: 10px; list-style: none; }
