@@ -11,6 +11,9 @@ export default createAppConfig(
         thirdPartyLicense: false,
     },
     {
+        build: {
+            cssCodeSplit: false, // Prevents splitting CSS into separate .chunk.css files
+        },
         server: {
             watch: {
                 usePolling: true,
