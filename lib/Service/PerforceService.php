@@ -9,13 +9,47 @@ use OCP\IConfig;
 class PerforceService {
 
     private IConfig $config;
+    
+    // Define the environment prefix to guarantee Context for the www-data user
+    private string $envPrefix = 'export P4TRUST=/tmp/.p4trust; export P4TICKETS=/tmp/.p4tickets;';
+    private string $p4Binary = 'p4'; // Update to absolute path like '/var/www/html/custom_apps/perforcedashboard/p4' if 'p4' is not in PATH
 
     public function __construct(IConfig $config) {
         $this->config = $config;
     }
 
     /**
-     * Executes a P4 CLI command using saved credentials and auto-trusts SSL
+     * 1. Automate Ticket Generation (The "Login" Fix)
+     * Can be called by your Settings Controller when a user updates their password.
+     */
+    public function generateTicket(string $server, string $user, string $rawPassword): string {
+        // Auto-trust SSL first so the login doesn't fail
+        if (str_starts_with($server, 'ssl:')) {
+            shell_exec(sprintf('%s %s -p %s trust -y -f < /dev/null > /dev/null 2>&1', $this->envPrefix, $this->p4Binary, escapeshellarg($server)));
+        }
+
+        // Pipe the password into p4 login -p to bypass the interactive prompt
+        $cmd = sprintf(
+            "echo %s | %s %s -p %s -u %s login -p 2>&1",
+            escapeshellarg($rawPassword),
+            $this->envPrefix,
+            $this->p4Binary,
+            escapeshellarg($server),
+            escapeshellarg($user)
+        );
+        
+        $output = shell_exec($cmd);
+        
+        // Extract the 32-character ticket hash from the output
+        if (preg_match('/([A-F0-9]{32})/', $output, $matches)) {
+            return $matches[1]; // Save this returned string to Nextcloud config as p4_password
+        }
+        
+        throw new \Exception("Failed to generate Perforce ticket. Output: " . $output);
+    }
+
+    /**
+     * Executes a P4 CLI command using saved credentials, auto-trusts SSL, and prevents hangs
      */
     private function execP4(string $args): array {
         $server = $this->config->getAppValue('perforcedashboard', 'p4_server', '');
@@ -26,12 +60,22 @@ class PerforceService {
             return ['error' => 'Perforce server address is not configured.'];
         }
 
+        // 3. Auto-Trust SSL Connections silently
         if (str_starts_with($server, 'ssl:')) {
-            exec(sprintf('export P4TRUST=/tmp/.p4trust; p4 -p %s trust -y 2>&1', escapeshellarg($server)));
+            $trustCmd = sprintf(
+                '%s %s -p %s trust -y -f < /dev/null > /dev/null 2>&1', 
+                $this->envPrefix, 
+                $this->p4Binary, 
+                escapeshellarg($server)
+            );
+            shell_exec($trustCmd);
         }
 
+        // 2 & 4. Inject Variables and Append < /dev/null to prevent infinite hangs
         $cmd = sprintf(
-            'export P4TRUST=/tmp/.p4trust; export P4TICKETS=/tmp/.p4tickets; p4 -p %s -u %s %s %s 2>&1',
+            '%s %s -p %s -u %s %s %s < /dev/null 2>&1',
+            $this->envPrefix,
+            $this->p4Binary,
             escapeshellarg($server),
             escapeshellarg($user),
             !empty($password) ? '-P ' . escapeshellarg($password) : '',
