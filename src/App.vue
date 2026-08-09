@@ -266,7 +266,7 @@ const toggleCard = (id: number | string) => {
 </template>
 
 <style>
-/* Unscoped global CSS rules */
+/* Unscoped global CSS rules - compiled into build chunks */
 .p4-content {
     display: flex;
     justify-content: flex-start;

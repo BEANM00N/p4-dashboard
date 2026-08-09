@@ -34,7 +34,9 @@ class PageController extends Controller {
 
 		// Define allowed origins so Nextcloud's CSP doesn't block local assets
 		$policy = new ContentSecurityPolicy();
-		$policy->addAllowedDefaultSrcDomain('\'self\'');
+		$policy->addAllowedScriptDomain('\'self\'');
+		$policy->addAllowedScriptDomain('\'unsafe-inline\'');
+		$policy->addAllowedScriptDomain('\'unsafe-eval\'');
 		$policy->addAllowedStyleDomain('\'self\'');
 		$policy->addAllowedStyleDomain('\'unsafe-inline\'');
 		$policy->addAllowedConnectDomain('\'self\'');
