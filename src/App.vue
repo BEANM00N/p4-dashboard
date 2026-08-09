@@ -121,37 +121,6 @@ const filteredCheckouts = computed(() => {
 const toggleCard = (id: number | string) => {
     expandedCardId.value = expandedCardId.value === id ? null : id
 }
-
-// --- Unreal Engine Asset Category Classifier ---
-const getAssetCategory = (filePath: string): string => {
-    if (!filePath) return 'default'
-    const lower = filePath.toLowerCase()
-    const fileName = filePath.split('/').pop()?.toLowerCase() || ''
-
-    if (lower.endsWith('.umap')) return 'map'
-    if (lower.endsWith('.cpp') || lower.endsWith('.h') || lower.endsWith('.cs')) return 'code'
-
-    if (fileName.startsWith('m_') || fileName.startsWith('mi_') || fileName.startsWith('m3d_') || lower.includes('/materials/')) {
-        return 'material'
-    }
-    if (fileName.startsWith('t_') || fileName.startsWith('tx_') || lower.includes('/textures/')) {
-        return 'texture'
-    }
-    if (fileName.startsWith('l_') || fileName.startsWith('map_') || lower.includes('/maps/') || lower.includes('/levels/')) {
-        return 'map'
-    }
-    if (fileName.startsWith('bp_') || fileName.startsWith('wbp_') || lower.includes('/blueprints/') || lower.includes('/ui/')) {
-        return 'blueprint'
-    }
-    if (fileName.startsWith('sm_') || fileName.startsWith('sk_') || lower.includes('/meshes/') || lower.includes('/environment/')) {
-        return 'mesh'
-    }
-    if (fileName.startsWith('a_') || fileName.startsWith('s_') || fileName.startsWith('sfx_') || lower.includes('/audio/') || lower.includes('/sounds/')) {
-        return 'audio'
-    }
-
-    return 'default'
-}
 </script>
 
 <template>
@@ -208,9 +177,9 @@ const getAssetCategory = (filePath: string): string => {
                     >
                         <div class="card-header">
                             <h3>👤 {{ item.user }}</h3>
-                            <span class="badge">{{ item.files.length }} files open</span>
+                            <span class="badge">{{ item.files.length }} FILES OPEN</span>
                         </div>
-                        <p class="workspace-info"><strong>Workspace:</strong> <code>{{ item.workspace }}</code></p>
+                        <p class="workspace-info"><strong>Workspace:</strong> <span>{{ item.workspace }}</span></p>
 
                         <div v-if="expandedCardId === item.user" class="file-list">
                             <h4>Currently Checked Out Assets:</h4>
@@ -219,9 +188,7 @@ const getAssetCategory = (filePath: string): string => {
                                     <span :class="['action-tag', `action_${file.action.toLowerCase()}`]">
                                         {{ file.action }}
                                     </span>
-                                    <code :class="['file-path', `asset_${getAssetCategory(file.path)}`]">
-                                        {{ file.path }}
-                                    </code>
+                                    <code class="file-path">{{ file.path }}</code>
                                 </li>
                             </ul>
                         </div>
@@ -261,7 +228,7 @@ const getAssetCategory = (filePath: string): string => {
                 <div class="header">
                     <h2>Perforce Team Activity</h2>
                 </div>
-                <input v-model="searchQuery" type="text" placeholder="Search..." class="search-input" />
+                <input v-model="searchQuery" type="text" placeholder="Search by owner, ID, or description..." class="search-input" />
 
                 <div v-if="filteredChangelists.length > 0">
                     <div
@@ -274,16 +241,14 @@ const getAssetCategory = (filePath: string): string => {
                             <h3>CL #{{ cl.id }}</h3>
                             <span class="badge">{{ cl.status }}</span>
                         </div>
-                        <p><strong>Owner:</strong> {{ cl.owner }} • <em>{{ cl.timestamp }}</em></p>
+                        <p class="cl-meta"><strong>Owner:</strong> {{ cl.owner }} • <em>{{ cl.timestamp }}</em></p>
                         <p class="description">{{ cl.description }}</p>
 
                         <div v-if="expandedCardId === cl.id" class="file-list">
                             <h4>Affected Files (showing {{ cl.files.length }}):</h4>
                             <ul>
                                 <li v-for="file in cl.files" :key="file">
-                                    <code :class="['file-path', `asset_${getAssetCategory(file)}`]">
-                                        {{ file }}
-                                    </code>
+                                    <code class="file-path">{{ file }}</code>
                                 </li>
                             </ul>
                         </div>
@@ -307,78 +272,42 @@ const getAssetCategory = (filePath: string): string => {
     max-width: 900px;
 }
 
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-}
-
-.commit-btn {
-    background-color: var(--color-primary-element);
-    color: var(--color-primary-element-text);
-    border: none;
-    padding: 10px 20px;
-    border-radius: var(--border-radius);
-    cursor: pointer;
-    font-weight: bold;
-    margin-top: 10px;
+.header h2 {
+    font-size: 1.8em;
+    font-weight: 700;
+    margin-bottom: 15px;
 }
 
 .search-input,
 .input-field {
     width: 100%;
-    padding: 12px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--border-radius);
-    background-color: var(--color-main-background);
+    padding: 10px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.2);
     color: var(--color-main-text);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     box-sizing: border-box;
-}
-
-.settings-form {
-    background-color: var(--color-main-background);
-    border: 1px solid var(--color-border);
-    padding: 25px;
-    border-radius: var(--border-radius-large);
-    margin-top: 20px;
-}
-
-.field-group {
-    margin-bottom: 15px;
-}
-
-.field-group label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-.status-msg {
-    margin-top: 15px;
-    font-weight: bold;
-    color: var(--color-success);
+    font-size: 0.95em;
 }
 
 .card {
-    border: 1px solid var(--color-border);
-    background-color: var(--color-main-background);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background-color: rgba(255, 255, 255, 0.03);
     padding: 20px;
-    margin-top: 15px;
-    border-radius: var(--border-radius-large);
+    margin-bottom: 16px;
+    border-radius: 8px;
     cursor: pointer;
-    transition: all 0.2s ease-in-out;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {
-    border-color: var(--color-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-color: #0082c9;
 }
 
 .expanded-card {
-    border-color: var(--color-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    border-color: #0082c9 !important;
+    box-shadow: 0 0 10px rgba(0, 130, 201, 0.2);
 }
 
 .card-header {
@@ -389,85 +318,118 @@ const getAssetCategory = (filePath: string): string => {
 
 .card-header h3 {
     margin: 0;
-    color: var(--color-primary);
+    color: #0082c9;
+    font-size: 1.3em;
+    font-weight: 700;
 }
 
 .workspace-info {
-    margin: 8px 0 0 0;
+    margin: 6px 0 0 0;
+    font-size: 0.95em;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.cl-meta {
+    margin: 4px 0 0 0;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 .description {
     margin-top: 6px;
+    font-size: 0.95em;
 }
 
 .badge {
-    background-color: var(--color-background-dark);
-    color: var(--color-text-maxcontrast);
+    background-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
     padding: 4px 10px;
     border-radius: 12px;
-    font-size: 0.8em;
-    font-weight: 600;
-    text-transform: uppercase;
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
 }
 
 .action-tag {
     display: inline-block;
-    min-width: 52px;
+    min-width: 54px;
     text-align: center;
     padding: 3px 8px;
     border-radius: 4px;
     font-size: 0.75em;
     font-weight: 800;
-    margin-right: 10px;
+    margin-right: 12px;
     text-transform: uppercase;
     color: #ffffff;
     letter-spacing: 0.5px;
 }
 
-/* Color-coded Perforce Actions */
 .action_edit { background-color: #0082c9; }
 .action_add { background-color: #2e7d32; }
 .action_delete { background-color: #e53935; }
 
-/* File Path Underlines */
 .file-path {
-    border-bottom: 2.5px solid var(--color-border);
-    padding-bottom: 2px;
-    transition: border-color 0.2s ease;
+    font-family: monospace;
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.9);
 }
 
-/* Unreal Engine Asset Category Underline Colors */
-.asset_map { border-bottom-color: #ffd54f !important; }
-.asset_texture { border-bottom-color: #ef5350 !important; }
-.asset_material { border-bottom-color: #66bb6a !important; }
-.asset_blueprint { border-bottom-color: #42a5f5 !important; }
-.asset_mesh { border-bottom-color: #ab47bc !important; }
-.asset_audio { border-bottom-color: #ffa726 !important; }
-.asset_code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }
-
 .file-list {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px dashed var(--color-border);
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.15);
 }
 
 .file-list h4 {
-    margin: 0 0 10px 0;
+    margin: 0 0 12px 0;
+    font-size: 1.1em;
+    font-weight: 700;
 }
 
 .file-list ul {
     list-style: none;
     padding-left: 0;
-    margin: 5px 0 0 0;
-    max-height: 300px;
-    overflow-y: auto;
+    margin: 0;
 }
 
 .file-list li {
-    padding: 6px 0;
-    font-size: 0.9em;
+    padding: 5px 0;
     display: flex;
     align-items: center;
+}
+
+.settings-form {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 25px;
+    border-radius: 8px;
+    margin-top: 15px;
+}
+
+.field-group {
+    margin-bottom: 15px;
+}
+
+.field-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 6px;
+}
+
+.commit-btn {
+    background-color: #0082c9;
+    color: #ffffff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.status-msg {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #2e7d32;
 }
 
 .nav-list {
@@ -477,7 +439,7 @@ const getAssetCategory = (filePath: string): string => {
 
 .nav-list li a {
     display: block;
-    padding: 10px;
+    padding: 10px 14px;
     color: var(--color-text-maxcontrast);
     text-decoration: none;
     border-radius: var(--border-radius);
@@ -495,6 +457,6 @@ const getAssetCategory = (filePath: string): string => {
 .empty-state {
     padding: 40px;
     text-align: center;
-    color: var(--color-text-maxcontrast);
+    color: rgba(255, 255, 255, 0.5);
 }
 </style>
