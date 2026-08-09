@@ -65,6 +65,21 @@ const fetchSettings = async () => {
     }
 }
 
+const saveSettings = async () => {
+    isSavingSettings.value = true
+    settingsStatusMessage.value = ''
+    try {
+        const response = await axios.post(generateUrl('/apps/perforcedashboard/api/settings'), settings.value)
+        settingsStatusMessage.value = response.data.message || 'Settings saved successfully!'
+        fetchAllData()
+    } catch (error) {
+        console.error('Failed to save settings:', error)
+        settingsStatusMessage.value = 'Failed to save settings.'
+    } finally {
+        isSavingSettings.value = false
+    }
+}
+
 const fetchAllData = () => {
     fetchChangelists()
     fetchCheckouts()
@@ -113,33 +128,30 @@ const getAssetCategory = (filePath: string): string => {
     const lower = filePath.toLowerCase()
     const fileName = filePath.split('/').pop()?.toLowerCase() || ''
 
-    // 1. Explicit Extensions
     if (lower.endsWith('.umap')) return 'map'
     if (lower.endsWith('.cpp') || lower.endsWith('.h') || lower.endsWith('.cs')) return 'code'
 
-    // 2. Prefixes & Folder Patterns
     if (fileName.startsWith('m_') || fileName.startsWith('mi_') || fileName.startsWith('m3d_') || lower.includes('/materials/')) {
-        return 'material' // Green
+        return 'material'
     }
     if (fileName.startsWith('t_') || fileName.startsWith('tx_') || lower.includes('/textures/')) {
-        return 'texture'  // Red
+        return 'texture'
     }
     if (fileName.startsWith('l_') || fileName.startsWith('map_') || lower.includes('/maps/') || lower.includes('/levels/')) {
-        return 'map'      // Yellow
+        return 'map'
     }
     if (fileName.startsWith('bp_') || fileName.startsWith('wbp_') || lower.includes('/blueprints/') || lower.includes('/ui/')) {
-        return 'blueprint'// Blue
+        return 'blueprint'
     }
     if (fileName.startsWith('sm_') || fileName.startsWith('sk_') || lower.includes('/meshes/') || lower.includes('/environment/')) {
-        return 'mesh'     // Purple
+        return 'mesh'
     }
     if (fileName.startsWith('a_') || fileName.startsWith('s_') || fileName.startsWith('sfx_') || lower.includes('/audio/') || lower.includes('/sounds/')) {
-        return 'audio'    // Orange
+        return 'audio'
     }
 
     return 'default'
 }
-
 </script>
 
 <template>
@@ -299,7 +311,6 @@ const getAssetCategory = (filePath: string): string => {
 .cardHeader h3 { margin: 0; color: var(--color-primary); }
 .badge { background-color: var(--color-background-dark); color: var(--color-text-maxcontrast); padding: 4px 8px; border-radius: 12px; font-size: 0.8em; text-transform: uppercase; }
 
-/* Action Badges */
 .actionTag {
     display: inline-block;
     min-width: 52px;
@@ -318,21 +329,19 @@ const getAssetCategory = (filePath: string): string => {
 .action_add { background-color: #2e7d32; }
 .action_delete { background-color: #e53935; }
 
-/* File Path Underlines */
 .filePath {
     border-bottom: 2.5px solid var(--color-border);
     padding-bottom: 2px;
     transition: border-color 0.2s ease;
 }
 
-/* Unreal Engine Asset Category Underline Colors */
-.asset_map { border-bottom-color: #ffd54f !important; }        /* Yellow for Maps / Levels */
-.asset_texture { border-bottom-color: #ef5350 !important; }    /* Red for Textures */
-.asset_material { border-bottom-color: #66bb6a !important; }   /* Green for Materials */
-.asset_blueprint { border-bottom-color: #42a5f5 !important; }  /* Blue for Blueprints / Widgets */
-.asset_mesh { border-bottom-color: #ab47bc !important; }       /* Purple for Meshes */
-.asset_audio { border-bottom-color: #ffa726 !important; }      /* Orange for Audio */
-.asset_code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }       /* Brown for C++ / Source */
+.asset_map { border-bottom-color: #ffd54f !important; }
+.asset_texture { border-bottom-color: #ef5350 !important; }
+.asset_material { border-bottom-color: #66bb6a !important; }
+.asset_blueprint { border-bottom-color: #42a5f5 !important; }
+.asset_mesh { border-bottom-color: #ab47bc !important; }
+.asset_audio { border-bottom-color: #ffa726 !important; }
+.asset_code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }
 
 .fileList { margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--color-border); }
 .fileList ul { list-style: none; padding-left: 0; margin: 5px 0 0 0; max-height: 300px; overflow-y: auto; }

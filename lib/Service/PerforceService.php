@@ -9,58 +9,27 @@ use OCP\IConfig;
 class PerforceService {
 
     private IConfig $config;
-    
-    // Define the environment prefix to guarantee Context for the www-data user
     private string $envPrefix = 'export P4TRUST=/tmp/.p4trust; export P4TICKETS=/tmp/.p4tickets;';
-    private string $p4Binary = 'p4'; // Update to absolute path like '/var/www/html/custom_apps/perforcedashboard/p4' if 'p4' is not in PATH
+    
+    // Absolute path fallback to ensure execution works even if symlinks are wiped
+    private string $p4Binary = '/var/www/html/custom_apps/perforcedashboard/p4';
 
     public function __construct(IConfig $config) {
         $this->config = $config;
+        if (!file_exists($this->p4Binary)) {
+            $this->p4Binary = 'p4';
+        }
     }
 
-    /**
-     * 1. Automate Ticket Generation (The "Login" Fix)
-     * Can be called by your Settings Controller when a user updates their password.
-     */
-    public function generateTicket(string $server, string $user, string $rawPassword): string {
-        // Auto-trust SSL first so the login doesn't fail
-        if (str_starts_with($server, 'ssl:')) {
-            shell_exec(sprintf('%s %s -p %s trust -y -f < /dev/null > /dev/null 2>&1', $this->envPrefix, $this->p4Binary, escapeshellarg($server)));
-        }
-
-        // Pipe the password into p4 login -p to bypass the interactive prompt
-        $cmd = sprintf(
-            "echo %s | %s %s -p %s -u %s login -p 2>&1",
-            escapeshellarg($rawPassword),
-            $this->envPrefix,
-            $this->p4Binary,
-            escapeshellarg($server),
-            escapeshellarg($user)
-        );
-        
-        $output = shell_exec($cmd);
-        
-        // Extract the 32-character ticket hash from the output
-        if (preg_match('/([A-F0-9]{32})/', $output, $matches)) {
-            return $matches[1]; // Save this returned string to Nextcloud config as p4_password
-        }
-        
-        throw new \Exception("Failed to generate Perforce ticket. Output: " . $output);
-    }
-
-    /**
-     * Executes a P4 CLI command using saved credentials, auto-trusts SSL, and prevents hangs
-     */
     private function execP4(string $args): array {
-        $server = $this->config->getAppValue('perforcedashboard', 'p4_server', '');
-        $user = $this->config->getAppValue('perforcedashboard', 'p4_user', '');
+        $server = $this->config->getAppValue('perforcedashboard', 'p4_server', '172.16.3.1:1665');
+        $user = $this->config->getAppValue('perforcedashboard', 'p4_user', 'Josh');
         $password = $this->config->getAppValue('perforcedashboard', 'p4_password', '');
 
         if (empty($server)) {
             return ['error' => 'Perforce server address is not configured.'];
         }
 
-        // 3. Auto-Trust SSL Connections silently
         if (str_starts_with($server, 'ssl:')) {
             $trustCmd = sprintf(
                 '%s %s -p %s trust -y -f < /dev/null > /dev/null 2>&1', 
@@ -71,7 +40,6 @@ class PerforceService {
             shell_exec($trustCmd);
         }
 
-        // 2 & 4. Inject Variables and Append < /dev/null to prevent infinite hangs
         $cmd = sprintf(
             '%s %s -p %s -u %s %s %s < /dev/null 2>&1',
             $this->envPrefix,
@@ -92,9 +60,6 @@ class PerforceService {
         ];
     }
 
-    /**
-     * Fetches changelists with smart persistent caching for submitted changes
-     */
     public function getChangelists(string $status = 'pending'): array {
         if ($status === 'submitted') {
             return $this->getSubmittedChangelistsWithCache();
@@ -103,9 +68,6 @@ class PerforceService {
         return $this->getPendingChangelists();
     }
 
-    /**
-     * Fetches submitted changelists - only queries Perforce for UNCACHED changelist IDs
-     */
     private function getSubmittedChangelistsWithCache(): array {
         $result = $this->execP4("changes -s submitted -m 15");
 
@@ -113,7 +75,6 @@ class PerforceService {
             return [];
         }
 
-        // Load cached submitted changelists
         $cacheRaw = $this->config->getAppValue('perforcedashboard', 'submitted_cache', '{}');
         $cache = json_decode($cacheRaw, true) ?: [];
 
@@ -137,7 +98,6 @@ class PerforceService {
             }
         }
 
-        // ONLY query Perforce `describe -s` for BRAND NEW submitted changelists!
         if (!empty($uncachedIds)) {
             $uncachedStr = implode(' ', $uncachedIds);
             $describeResult = $this->execP4("describe -s {$uncachedStr}");
@@ -168,7 +128,6 @@ class PerforceService {
                 }
             }
 
-            // Save new entries into cache
             foreach ($uncachedIds as $id) {
                 if (isset($clHeaders[$id])) {
                     $cache[$id] = $clHeaders[$id];
@@ -178,7 +137,6 @@ class PerforceService {
             $this->config->setAppValue('perforcedashboard', 'submitted_cache', json_encode($cache));
         }
 
-        // Build list in order of latest changes
         $finalList = [];
         foreach ($clHeaders as $id => $header) {
             if (isset($cache[$id])) {
@@ -189,9 +147,6 @@ class PerforceService {
         return $finalList;
     }
 
-    /**
-     * Fetches active pending changelists
-     */
     private function getPendingChangelists(): array {
         $result = $this->execP4("changes -s pending -m 15");
 
@@ -235,9 +190,6 @@ class PerforceService {
         return array_values($clMap);
     }
 
-    /**
-     * Fetches all currently checked-out files across all team workspaces
-     */
     public function getCheckouts(): array {
         $result = $this->execP4('opened -a -m 500');
 

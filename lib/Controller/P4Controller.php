@@ -6,6 +6,8 @@ namespace OCA\PerforceDashboard\Controller;
 
 use OCA\PerforceDashboard\Service\PerforceService;
 use OCP\AppFramework\Controller;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\IConfig;
 use OCP\IRequest;
@@ -21,10 +23,8 @@ class P4Controller extends Controller {
         $this->p4Service = $p4Service;
     }
 
-    /**
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function getChangelists(): DataResponse {
         $pending = $this->p4Service->getChangelists('pending');
         $submitted = $this->p4Service->getChangelists('submitted');
@@ -32,31 +32,25 @@ class P4Controller extends Controller {
         return new DataResponse(array_merge($pending, $submitted));
     }
 
-    /**
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function getCheckouts(): DataResponse {
         $checkouts = $this->p4Service->getCheckouts();
         return new DataResponse($checkouts);
     }
 
-    /**
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function getSettings(): DataResponse {
         return new DataResponse([
-            'server' => $this->config->getAppValue('perforcedashboard', 'p4_server', 'ssl:perforce.madmoonserver.com:1666'),
-            'user' => $this->config->getAppValue('perforcedashboard', 'p4_user', ''),
+            'server' => $this->config->getAppValue('perforcedashboard', 'p4_server', '172.16.3.1:1665'),
+            'user' => $this->config->getAppValue('perforcedashboard', 'p4_user', 'Josh'),
             'password' => $this->config->getAppValue('perforcedashboard', 'p4_password', ''),
         ]);
     }
 
-    /**
-     * @NoAdminRequired
-     * @NoCSRFRequired
-     */
+    #[NoAdminRequired]
+    #[NoCSRFRequired]
     public function saveSettings(): DataResponse {
         $server = $this->request->getParam('server', '');
         $user = $this->request->getParam('user', '');
