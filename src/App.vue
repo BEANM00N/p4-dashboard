@@ -89,7 +89,7 @@ const fetchAllData = () => {
 onMounted(() => {
     fetchAllData()
     fetchSettings()
-    pollTimer = window.setInterval(fetchAllData, 2000)
+    pollTimer = window.setInterval(fetchAllData, 3000)
 })
 
 onUnmounted(() => {
@@ -120,6 +120,25 @@ const filteredCheckouts = computed(() => {
 
 const toggleCard = (id: number | string) => {
     expandedCardId.value = expandedCardId.value === id ? null : id
+}
+
+// --- Unreal Engine Asset Category Classifier ---
+const getAssetCategory = (filePath: string): string => {
+    if (!filePath) return 'default'
+    const lower = filePath.toLowerCase()
+    const fileName = filePath.split('/').pop()?.toLowerCase() || ''
+
+    if (lower.endsWith('.umap')) return 'map'
+    if (lower.endsWith('.cpp') || lower.endsWith('.h') || lower.endsWith('.cs')) return 'code'
+
+    if (fileName.startsWith('m_') || fileName.startsWith('mi_') || fileName.startsWith('m3d_') || lower.includes('/materials/')) return 'material'
+    if (fileName.startsWith('t_') || fileName.startsWith('tx_') || lower.includes('/textures/')) return 'texture'
+    if (fileName.startsWith('l_') || fileName.startsWith('map_') || lower.includes('/maps/') || lower.includes('/levels/')) return 'map'
+    if (fileName.startsWith('bp_') || fileName.startsWith('wbp_') || lower.includes('/blueprints/') || lower.includes('/ui/')) return 'blueprint'
+    if (fileName.startsWith('sm_') || fileName.startsWith('sk_') || lower.includes('/meshes/') || lower.includes('/environment/')) return 'mesh'
+    if (fileName.startsWith('a_') || fileName.startsWith('s_') || fileName.startsWith('sfx_') || lower.includes('/audio/') || lower.includes('/sounds/')) return 'audio'
+
+    return 'default'
 }
 </script>
 
@@ -187,10 +206,12 @@ const toggleCard = (id: number | string) => {
                             <h4>Currently Checked Out Assets:</h4>
                             <ul>
                                 <li v-for="file in item.files" :key="file.path">
-                                    <span :class="['p4-action-tag', 'p4-action-' + file.action.toLowerCase()]">
+                                    <span :class="['p4-action-tag', `p4-action-${file.action.toLowerCase()}`]">
                                         {{ file.action }}
                                     </span>
-                                    <code class="p4-file-path">{{ file.path }}</code>
+                                    <code :class="['p4-file-path', `p4-asset-${getAssetCategory(file.path)}`]">
+                                        {{ file.path }}
+                                    </code>
                                 </li>
                             </ul>
                         </div>
@@ -239,18 +260,26 @@ const toggleCard = (id: number | string) => {
                         :class="['p4-card', { 'p4-card-expanded': expandedCardId === cl.id }]"
                         @click="toggleCard(cl.id)"
                     >
+                        <!-- Top Row: Description on left, Badge on right -->
                         <div class="p4-card-header">
-                            <h3>CL #{{ cl.id }}</h3>
+                            <h3 class="p4-description-title">{{ cl.description || 'Untitled Changelist' }}</h3>
                             <span class="p4-badge">{{ cl.status }}</span>
                         </div>
-                        <p class="p4-cl-meta"><strong>Owner:</strong> {{ cl.owner }} • <em>{{ cl.timestamp }}</em></p>
-                        <p class="p4-description">{{ cl.description }}</p>
+                        
+                        <!-- Metadata Row underneath -->
+                        <p class="p4-cl-meta">
+                            <span class="p4-cl-number">CL #{{ cl.id }}</span> • 
+                            <strong>Owner:</strong> {{ cl.owner }} • 
+                            <em>{{ cl.timestamp }}</em>
+                        </p>
 
                         <div v-if="expandedCardId === cl.id" class="p4-file-list">
                             <h4>Affected Files (showing {{ cl.files.length }}):</h4>
                             <ul>
                                 <li v-for="file in cl.files" :key="file">
-                                    <code class="p4-file-path">{{ file }}</code>
+                                    <code :class="['p4-file-path', `p4-asset-${getAssetCategory(file)}`]">
+                                        {{ file }}
+                                    </code>
                                 </li>
                             </ul>
                         </div>
@@ -320,13 +349,26 @@ const toggleCard = (id: number | string) => {
 .p4-card-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
 }
 
 .p4-card-header h3 {
     margin: 0;
     color: #0082c9 !important;
     font-size: 1.35em;
+    font-weight: 700;
+}
+
+/* Specific styling for the Changelist Title to handle long descriptions */
+.p4-description-title {
+    color: #ffffff !important;
+    font-size: 1.15em !important;
+    padding-right: 15px;
+    word-break: break-word;
+}
+
+.p4-cl-number {
+    color: #0082c9;
     font-weight: 700;
 }
 
@@ -337,14 +379,9 @@ const toggleCard = (id: number | string) => {
 }
 
 .p4-cl-meta {
-    margin: 4px 0 0 0;
+    margin: 8px 0 0 0;
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.7);
-}
-
-.p4-description {
-    margin-top: 6px;
-    font-size: 0.95em;
 }
 
 .p4-badge {
@@ -356,6 +393,7 @@ const toggleCard = (id: number | string) => {
     font-weight: 700;
     letter-spacing: 0.5px;
     text-transform: uppercase;
+    white-space: nowrap;
 }
 
 .p4-action-tag {
@@ -376,11 +414,24 @@ const toggleCard = (id: number | string) => {
 .p4-action-add { background-color: #2e7d32 !important; }
 .p4-action-delete { background-color: #e53935 !important; }
 
+/* File Path Underlines */
 .p4-file-path {
     font-family: monospace;
     font-size: 0.9em;
     color: rgba(255, 255, 255, 0.9);
+    border-bottom: 2.5px solid transparent; /* Default state */
+    padding-bottom: 2px;
+    transition: border-color 0.2s ease;
 }
+
+/* UE Category Colors */
+.p4-asset-map { border-bottom-color: #ffd54f !important; }
+.p4-asset-texture { border-bottom-color: #ef5350 !important; }
+.p4-asset-material { border-bottom-color: #66bb6a !important; }
+.p4-asset-blueprint { border-bottom-color: #42a5f5 !important; }
+.p4-asset-mesh { border-bottom-color: #ab47bc !important; }
+.p4-asset-audio { border-bottom-color: #ffa726 !important; }
+.p4-asset-code { border-bottom-color: #8d6e63 !important; opacity: 0.9; }
 
 .p4-file-list {
     margin-top: 18px;
